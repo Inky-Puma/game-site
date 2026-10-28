@@ -284,6 +284,15 @@
         border-color: rgba(124, 156, 255, 0.7);
       }
 
+      .mini-btn.favorite {
+        background: rgba(251, 191, 36, 0.1);
+        border-color: rgba(251, 191, 36, 0.35);
+      }
+
+      .fav-on {
+        color: #ffd76a;
+      }
+
       .preview {
         display: flex;
         flex-direction: column;
@@ -385,7 +394,6 @@
               <option value="category">Sort: Category</option>
               <option value="name-desc">Sort: Name Z-A</option>
             </select>
-            <button class="button" id="developerOpen" type="button">Developer</button>
           </div>
         </div>
 
@@ -418,13 +426,15 @@
         const repo = "Games";
         const branch = "main";
         const contentUrl = `https://api.github.com/repos/${owner}/${repo}/contents?ref=${branch}`;
-        const storageKey = "gamesLauncherLocalFiles";
+        const localStorageKey = "gamesLauncherLocalFiles";
+        const favoritesKey = "gamesLauncherFavorites";
 
         const state = {
           games: [],
           selectedGame: null,
           activeCategory: "All",
-          sortMode: "name-asc"
+          sortMode: "name-asc",
+          favorites: new Set(readFavorites())
         };
 
         const statusEl = document.getElementById("status");
@@ -435,9 +445,22 @@
         const previewTitle = document.getElementById("previewTitle");
         const previewFrame = document.getElementById("previewFrame");
         const noSelection = document.getElementById("noSelection");
-        const developerOpen = document.getElementById("developerOpen");
         const launchLauncherButton = document.getElementById("launchLauncherButton");
         const openBlankButton = document.getElementById("openBlankButton");
+
+        function readFavorites() {
+          try {
+            const raw = localStorage.getItem(favoritesKey);
+            const parsed = raw ? JSON.parse(raw) : [];
+            return Array.isArray(parsed) ? parsed : [];
+          } catch (error) {
+            return [];
+          }
+        }
+
+        function writeFavorites() {
+          localStorage.setItem(favoritesKey, JSON.stringify(Array.from(state.favorites)));
+        }
 
         function setStatus(message, type = "") {
           statusEl.textContent = message || "";
@@ -446,7 +469,7 @@
 
         function readLocalGames() {
           try {
-            const raw = localStorage.getItem(storageKey);
+            const raw = localStorage.getItem(localStorageKey);
             if (!raw) return [];
             const parsed = JSON.parse(raw);
             return Array.isArray(parsed) ? parsed.filter(item => item && item.name && item.html) : [];
@@ -482,7 +505,8 @@
             category: normalizeCategoryName(item.name),
             type: "remote",
             rawUrl: item.download_url || item.url,
-            source: "GitHub"
+            source: "GitHub",
+            favorite: state.favorites.has(String(item.name).toLowerCase())
           };
         }
 
@@ -493,7 +517,8 @@
             category: normalizeCategoryName(item.name),
             type: "local",
             html: item.html || "",
-            source: "Local"
+            source: "Local",
+            favorite: state.favorites.has(String(item.name).toLowerCase())
           };
         }
 
@@ -518,10 +543,35 @@
             });
         }
 
+        function isFavorite(game) {
+          return state.favorites.has(String(game.name).toLowerCase());
+        }
+
+        function toggleFavorite(game) {
+          const key = String(game.name).toLowerCase();
+          if (state.favorites.has(key)) {
+            state.favorites.delete(key);
+          } else {
+            state.favorites.add(key);
+          }
+          writeFavorites();
+
+          state.games = state.games.map((entry) => {
+            if (String(entry.name).toLowerCase() === key) {
+              return { ...entry, favorite: isFavorite(entry) };
+            }
+            return entry;
+          });
+
+          render();
+        }
+
         function filterGames() {
           const query = searchInput.value.trim().toLowerCase();
+
           return state.games.filter((game) => {
-            const categoryMatch = state.activeCategory === "All" || game.category === state.activeCategory;
+            const favoriteMatch = state.activeCategory !== "Favorites" || isFavorite(game);
+            const categoryMatch = state.activeCategory === "All" || state.activeCategory === "Favorites" ? favoriteMatch : game.category === state.activeCategory;
             const queryMatch = !query || game.name.toLowerCase().includes(query);
             return categoryMatch && queryMatch;
           });
@@ -551,7 +601,7 @@
         }
 
         function renderCategories() {
-          const categories = ["All", ...new Set(state.games.map((game) => game.category || "General"))];
+          const categories = ["All", "Favorites", ...new Set(state.games.map((game) => game.category || "General"))];
           categoryStrip.innerHTML = "";
 
           categories.forEach((category) => {
@@ -568,29 +618,44 @@
         }
 
         function openGameInBlank(game) {
-          const win = window.open("about:blank", "_blank");
-          if (!win) {
-            setStatus("Popup blocked. Please allow popups for the launcher.", "err");
+          let popup = null;
+          try {
+            popup = window.open("about:blank", "_blank");
+          } catch (error) {
+            popup = null;
+          }
+
+          if (!popup || popup.closed || typeof popup.document === "undefined") {
+            setStatus("Popup blocked in this environment. Falling back to in-app preview.", "err");
+            loadGameIntoPreview(game);
             return;
           }
 
           getGameHtml(game)
             .then((html) => {
-              win.document.open();
-              win.document.write(html);
-              win.document.close();
-              win.focus();
-              setStatus(`Opened “${game.name}” in about:blank.`, "ok");
+              try {
+                popup.document.open();
+                popup.document.write(html);
+                popup.document.close();
+                popup.focus();
+                setStatus(`Opened “${game.name}” in about:blank.`, "ok");
+              } catch (error) {
+                loadGameIntoPreview(game);
+                setStatus(`Opened “${game.name}” in the launcher preview instead because the popup was blocked.`, "err");
+              }
             })
             .catch(() => {
-              win.document.open();
-              win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Error</title><style>body{font-family:Arial;background:#070b12;color:#edf3ff;padding:24px}</style></head><body><h2>Unable to load game</h2><p>${game.name}</p></body></html>`);
-              win.document.close();
+              try {
+                popup.document.open();
+                popup.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Error</title><style>body{font-family:Arial;background:#070b12;color:#edf3ff;padding:24px}</style></head><body><h2>Unable to load game</h2><p>${game.name}</p></body></html>`);
+                popup.document.close();
+              } catch (error) {}
               setStatus(`Could not load “${game.name}”.`, "err");
             });
         }
 
         function loadGameIntoPreview(game) {
+          if (!game) return;
           noSelection.classList.add("hidden");
           previewFrame.classList.remove("hidden");
           previewFrame.srcdoc = "";
@@ -619,6 +684,7 @@
 
           visible.forEach((game) => {
             const item = document.createElement("div");
+            const favoriteOn = isFavorite(game) ? " fav-on" : "";
             item.className = `game-item${state.selectedGame && state.selectedGame.id === game.id ? " selected" : ""}`;
 
             item.innerHTML = `
@@ -636,6 +702,7 @@
                 </div>
               </div>
               <div class="game-actions">
+                <button class="mini-btn favorite${favoriteOn}" type="button" data-role="favorite" data-id="${game.id}" aria-label="Toggle favorite">★</button>
                 <button class="mini-btn primary" type="button" data-role="launcher" data-id="${game.id}">Launch</button>
                 <button class="mini-btn" type="button" data-role="blank" data-id="${game.id}">Open in about:blank</button>
               </div>
@@ -654,6 +721,11 @@
               const role = trigger.getAttribute("data-role");
               const id = trigger.getAttribute("data-id");
               const selected = state.games.find((entry) => entry.id === id) || game;
+
+              if (role === "favorite") {
+                toggleFavorite(selected);
+                return;
+              }
 
               state.selectedGame = selected;
               previewTitle.textContent = selected.name;
@@ -693,15 +765,21 @@
             });
         }
 
-        function loadAllGames() {
-          setStatus("Loading game library...", "");
+        function loadAllGames({ silent = false } = {}) {
+          if (!silent) {
+            setStatus("Loading game library...", "");
+          }
 
           Promise.all([
             fetchRemoteGames(),
             Promise.resolve(readLocalGames().map(buildLocalGame))
           ])
             .then(([remoteGames, localGames]) => {
-              state.games = mergeGames(remoteGames, localGames);
+              const merged = mergeGames(remoteGames, localGames);
+              state.games = merged.map((game) => ({
+                ...game,
+                favorite: isFavorite(game)
+              }));
 
               if (!state.selectedGame && state.games[0]) {
                 state.selectedGame = state.games[0];
@@ -710,11 +788,15 @@
               }
 
               render();
-              setStatus(`Loaded ${state.games.length} HTML game files.`, "ok");
+              if (!silent) {
+                setStatus(`Loaded ${state.games.length} HTML game files.`, "ok");
+              }
             })
             .catch((error) => {
               console.error(error);
-              setStatus("Could not load the GitHub game list.", "err");
+              if (!silent) {
+                setStatus("Could not load the GitHub game list.", "err");
+              }
             });
         }
 
@@ -725,10 +807,6 @@
         sortSelect.addEventListener("change", (event) => {
           state.sortMode = event.target.value;
           render();
-        });
-
-        developerOpen.addEventListener("click", () => {
-          window.open("developer.html", "_blank");
         });
 
         launchLauncherButton.addEventListener("click", () => {
@@ -749,6 +827,9 @@
         });
 
         loadAllGames();
+        setInterval(() => {
+          loadAllGames({ silent: true });
+        }, 15000);
       })();
     </script>
   </body>
