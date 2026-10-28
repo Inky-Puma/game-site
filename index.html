@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Game Hub Launcher</title>
+    <style>
+      :root {
+        --bg: #070b12;
+        --bg-2: #0f1723;
+        --panel: rgba(17, 23, 34, 0.92);
+        --panel-strong: rgba(12, 18, 28, 0.98);
+        --card: rgba(255, 255, 255, 0.03);
+        --card-alt: rgba(255, 255, 255, 0.02);
+        --card-border: rgba(148, 163, 184, 0.18);
+        --text: #edf3ff;
+        --muted: #9aa9c8;
+        --accent: #7c9cff;
+        --accent-2: #8f68ff;
+        --accent-3: #46c0ff;
+        --success: #4ade80;
+        --danger: #ff6b6b;
+        --warning: #fbbf24;
+        --shadow: rgba(0, 0, 0, 0.55);
+      }
+
+      * { box-sizing: border-box; }
+
+      html, body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at top left, rgba(124, 156, 255, 0.18), transparent 30%),
+          radial-gradient(circle at bottom right, rgba(143, 104, 255, 0.18), transparent 30%),
+          linear-gradient(180deg, var(--bg), var(--bg-2));
+        color: var(--text);
+        font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      }
+
+      body {
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      button, input, select {
+        font: inherit;
+      }
+
+      .app {
+        width: min(1440px, 100%);
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+        gap: 20px;
+        min-height: calc(100vh - 40px);
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--card-border);
+        border-radius: 24px;
+        box-shadow: 0 28px 80px var(--shadow);
+        overflow: hidden;
+      }
+
+      .sidebar {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 20px 20px 12px;
+        border-bottom: 1px solid var(--card-border);
+      }
+
+      .brand-mark {
+        width: 48px;
+        height: 48px;
+        border-radius: 16px;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        box-shadow: 0 16px 28px rgba(124, 156, 255, 0.35);
+        font-weight: 800;
+      }
+
+      .brand h1 {
+        margin: 0;
+        font-size: clamp(1.4rem, 2vw, 1.9rem);
+        letter-spacing: -0.04em;
+      }
+
+      .brand small {
+        display: block;
+        color: var(--muted);
+      }
+
+      .controls {
+        padding: 16px 18px 14px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .toolbar {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .search-box {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--card-border);
+        border-radius: 14px;
+        padding: 12px 14px;
+      }
+
+      .search-box svg {
+        width: 18px;
+        height: 18px;
+        stroke: var(--muted);
+        fill: none;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      .search-box input {
+        background: transparent;
+        border: none;
+        outline: none;
+        color: var(--text);
+        width: 100%;
+      }
+
+      .search-box input::placeholder {
+        color: var(--muted);
+      }
+
+      select, .button, .ghost-button {
+        border-radius: 12px;
+        border: 1px solid var(--card-border);
+        background: rgba(255,255,255,0.03);
+        color: var(--text);
+        padding: 10px 12px;
+      }
+
+      .button, .ghost-button {
+        cursor: pointer;
+        transition: transform 0.12s ease, border-color 0.12s ease, opacity 0.12s ease;
+      }
+
+      .button:hover, .ghost-button:hover {
+        transform: translateY(-1px);
+        border-color: rgba(124, 156, 255, 0.7);
+      }
+
+      .button {
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        border: none;
+        color: white;
+        box-shadow: 0 12px 24px rgba(124, 156, 255, 0.2);
+      }
+
+      .ghost-button {
+        background: rgba(255,255,255,0.02);
+      }
+
+      .status {
+        min-height: 22px;
+        padding: 0 18px 8px;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .status.ok { color: var(--success); }
+      .status.err { color: var(--danger); }
+
+      .category-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 0 18px 14px;
+      }
+
+      .category-pill {
+        padding: 8px 11px;
+        border-radius: 999px;
+        border: 1px solid var(--card-border);
+        background: rgba(255,255,255,0.02);
+        color: var(--muted);
+        cursor: pointer;
+        transition: all 0.12s ease;
+        font-size: 0.8rem;
+      }
+
+      .category-pill.active {
+        background: rgba(124, 156, 255, 0.14);
+        border-color: rgba(124, 156, 255, 0.7);
+        color: var(--text);
+      }
+
+      .games-list {
+        padding: 0 18px 18px;
+        display: grid;
+        gap: 12px;
+        overflow-y: auto;
+      }
+
+      .game-item {
+        background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+        border: 1px solid var(--card-border);
+        border-radius: 18px;
+        padding: 14px 14px 12px;
+        display: grid;
+        gap: 10px;
+        transition: border-color 0.12s ease, transform 0.12s ease;
+      }
+
+      .game-item:hover {
+        transform: translateY(-1px);
+        border-color: rgba(124, 156, 255, 0.72);
+      }
+
+      .game-item.selected {
+        border-color: rgba(124, 156, 255, 0.9);
+        box-shadow: inset 0 0 0 1px rgba(124, 156, 255, 0.3);
+      }
+
+      .game-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      .game-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, rgba(124, 156, 255, 0.18), rgba(143, 104, 255, 0.2));
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+      }
+
+      .game-name {
+        margin: 0;
+        font-size: 1rem;
+        line-height: 1.3;
+      }
+
+      .game-meta {
+        color: var(--muted);
+        font-size: 0.75rem;
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      .game-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .mini-btn {
+        background: rgba(255,255,255,0.02);
+        border: 1px solid var(--card-border);
+        border-radius: 10px;
+        color: var(--text);
+        padding: 8px 10px;
+        cursor: pointer;
+        font-size: 0.78rem;
+      }
+
+      .mini-btn.primary {
+        background: rgba(124, 156, 255, 0.14);
+        border-color: rgba(124, 156, 255, 0.7);
+      }
+
+      .preview {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .preview-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 18px 20px 14px;
+        border-bottom: 1px solid var(--card-border);
+      }
+
+      .preview-header h2 {
+        margin: 0;
+        font-size: clamp(1.2rem, 2vw, 1.8rem);
+        letter-spacing: -0.03em;
+      }
+
+      .preview-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .preview-body {
+        flex: 1;
+        padding: 18px;
+        display: grid;
+        gap: 14px;
+      }
+
+      .frame-shell {
+        flex: 1;
+        min-height: 620px;
+        background: rgba(0,0,0,0.18);
+        border: 1px solid var(--card-border);
+        border-radius: 20px;
+        overflow: hidden;
+        position: relative;
+      }
+
+      iframe {
+        width: 100%;
+        height: 100%;
+        min-height: 620px;
+        border: none;
+        background: #050a10;
+      }
+
+      .no-selection {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        color: var(--muted);
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      @media (max-width: 980px) {
+        .app {
+          grid-template-columns: 1fr;
+        }
+
+        .frame-shell,
+        iframe {
+          min-height: 420px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="panel sidebar">
+        <div class="brand">
+          <div class="brand-mark">G</div>
+          <div>
+            <h1>Game Hub</h1>
+            <small>Launcher</small>
+          </div>
+        </div>
+
+        <div class="controls">
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="11" cy="11" r="6"></circle>
+              <path d="M16 16L21 21"></path>
+            </svg>
+            <input id="searchInput" type="search" placeholder="Search games..." autocomplete="off" />
+          </div>
+
+          <div class="toolbar">
+            <select id="sortSelect" aria-label="Sort games">
+              <option value="name-asc">Sort: Name A-Z</option>
+              <option value="category">Sort: Category</option>
+              <option value="name-desc">Sort: Name Z-A</option>
+            </select>
+            <button class="button" id="developerOpen" type="button">Developer</button>
+          </div>
+        </div>
+
+        <div id="status" class="status" aria-live="polite"></div>
+        <div id="categoryStrip" class="category-strip"></div>
+        <div id="gameList" class="games-list" aria-live="polite"></div>
+      </aside>
+
+      <main class="panel preview">
+        <div class="preview-header">
+          <h2 id="previewTitle">Select a game</h2>
+          <div class="preview-actions">
+            <button class="ghost-button" id="launchLauncherButton" type="button">Launch in launcher</button>
+            <button class="button" id="openBlankButton" type="button">Open in about:blank</button>
+          </div>
+        </div>
+
+        <div class="preview-body">
+          <div class="frame-shell">
+            <div id="noSelection" class="no-selection">Pick a game from the list to preview it.</div>
+            <iframe id="previewFrame" title="Game preview" sandbox="allow-scripts allow-forms allow-modals allow-popups"></iframe>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      (() => {
+        const owner = "Inky-Puma";
+        const repo = "Games";
+        const branch = "main";
+        const contentUrl = `https://api.github.com/repos/${owner}/${repo}/contents?ref=${branch}`;
+        const storageKey = "gamesLauncherLocalFiles";
+
+        const state = {
+          games: [],
+          selectedGame: null,
+          activeCategory: "All",
+          sortMode: "name-asc"
+        };
+
+        const statusEl = document.getElementById("status");
+        const searchInput = document.getElementById("searchInput");
+        const sortSelect = document.getElementById("sortSelect");
+        const categoryStrip = document.getElementById("categoryStrip");
+        const gameList = document.getElementById("gameList");
+        const previewTitle = document.getElementById("previewTitle");
+        const previewFrame = document.getElementById("previewFrame");
+        const noSelection = document.getElementById("noSelection");
+        const developerOpen = document.getElementById("developerOpen");
+        const launchLauncherButton = document.getElementById("launchLauncherButton");
+        const openBlankButton = document.getElementById("openBlankButton");
+
+        function setStatus(message, type = "") {
+          statusEl.textContent = message || "";
+          statusEl.className = `status${type ? ` ${type}` : ""}`;
+        }
+
+        function readLocalGames() {
+          try {
+            const raw = localStorage.getItem(storageKey);
+            if (!raw) return [];
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed.filter(item => item && item.name && item.html) : [];
+          } catch (error) {
+            return [];
+          }
+        }
+
+        function normalizeCategoryName(rawName) {
+          const cleaned = String(rawName || "game")
+            .replace(/\.(html?|htm)$/i, "")
+            .replace(/[_-]+/g, " ")
+            .replace(/\s*\((\d+)\)\s*$/g, "")
+            .replace(/\s*\d+\s*$/g, "")
+            .replace(/\s*[-–—]\s*$/g, "")
+            .replace(/\s+/g, " ")
+            .trim();
+
+          if (!cleaned) return "General";
+
+          const ranked = cleaned.match(/^(.*?)(?:\s+\d+(?:[A-Za-z.-]+)?)$/);
+          const base = ranked ? ranked[1].trim() : cleaned;
+          return (base || cleaned)
+            .replace(/\s+and\s+/gi, " ")
+            .replace(/\s+/g, " ")
+            .trim() || "General";
+        }
+
+        function buildRemoteGame(item) {
+          return {
+            id: `remote-${item.sha || item.name}`,
+            name: item.name,
+            category: normalizeCategoryName(item.name),
+            type: "remote",
+            rawUrl: item.download_url || item.url,
+            source: "GitHub"
+          };
+        }
+
+        function buildLocalGame(item) {
+          return {
+            id: `local-${item.id || item.name}`,
+            name: item.name,
+            category: normalizeCategoryName(item.name),
+            type: "local",
+            html: item.html || "",
+            source: "Local"
+          };
+        }
+
+        function mergeGames(remoteGames, localGames) {
+          const map = new Map();
+
+          remoteGames.forEach((game) => map.set(String(game.name).toLowerCase(), game));
+          localGames.forEach((game) => map.set(String(game.name).toLowerCase(), game));
+
+          return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+        }
+
+        function getGameHtml(game) {
+          if (game.type === "local") {
+            return Promise.resolve(game.html || "<html><body>Empty upload.</body></html>");
+          }
+
+          return fetch(game.rawUrl)
+            .then((response) => {
+              if (!response.ok) throw new Error("Fetch failed");
+              return response.text();
+            });
+        }
+
+        function filterGames() {
+          const query = searchInput.value.trim().toLowerCase();
+          return state.games.filter((game) => {
+            const categoryMatch = state.activeCategory === "All" || game.category === state.activeCategory;
+            const queryMatch = !query || game.name.toLowerCase().includes(query);
+            return categoryMatch && queryMatch;
+          });
+        }
+
+        function sortGames(list) {
+          const result = [...list];
+
+          switch (state.sortMode) {
+            case "category":
+              result.sort((a, b) => {
+                const catCompare = (a.category || "").localeCompare(b.category || "", undefined, { sensitivity: "base" });
+                if (catCompare !== 0) return catCompare;
+                return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+              });
+              break;
+            case "name-desc":
+              result.sort((a, b) => b.name.localeCompare(a.name, undefined, { sensitivity: "base" }));
+              break;
+            case "name-asc":
+            default:
+              result.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+              break;
+          }
+
+          return result;
+        }
+
+        function renderCategories() {
+          const categories = ["All", ...new Set(state.games.map((game) => game.category || "General"))];
+          categoryStrip.innerHTML = "";
+
+          categories.forEach((category) => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = `category-pill${state.activeCategory === category ? " active" : ""}`;
+            button.textContent = category;
+            button.addEventListener("click", () => {
+              state.activeCategory = category;
+              render();
+            });
+            categoryStrip.appendChild(button);
+          });
+        }
+
+        function openGameInBlank(game) {
+          const win = window.open("about:blank", "_blank");
+          if (!win) {
+            setStatus("Popup blocked. Please allow popups for the launcher.", "err");
+            return;
+          }
+
+          getGameHtml(game)
+            .then((html) => {
+              win.document.open();
+              win.document.write(html);
+              win.document.close();
+              win.focus();
+              setStatus(`Opened “${game.name}” in about:blank.`, "ok");
+            })
+            .catch(() => {
+              win.document.open();
+              win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Error</title><style>body{font-family:Arial;background:#070b12;color:#edf3ff;padding:24px}</style></head><body><h2>Unable to load game</h2><p>${game.name}</p></body></html>`);
+              win.document.close();
+              setStatus(`Could not load “${game.name}”.`, "err");
+            });
+        }
+
+        function loadGameIntoPreview(game) {
+          noSelection.classList.add("hidden");
+          previewFrame.classList.remove("hidden");
+          previewFrame.srcdoc = "";
+
+          getGameHtml(game)
+            .then((html) => {
+              previewFrame.srcdoc = html;
+            })
+            .catch(() => {
+              previewFrame.srcdoc = `<html><body style="margin:0;background:#070b12;color:#edf3ff;font-family:sans-serif;display:grid;place-items:center;">Could not load ${game.name}</body></html>`;
+            });
+        }
+
+        function renderGameList() {
+          const visible = sortGames(filterGames());
+          gameList.innerHTML = "";
+
+          if (!visible.length) {
+            const empty = document.createElement("div");
+            empty.style.padding = "18px 0";
+            empty.style.color = "var(--muted)";
+            empty.textContent = "No games match the current search.";
+            gameList.appendChild(empty);
+            return;
+          }
+
+          visible.forEach((game) => {
+            const item = document.createElement("div");
+            item.className = `game-item${state.selectedGame && state.selectedGame.id === game.id ? " selected" : ""}`;
+
+            item.innerHTML = `
+              <div class="game-header">
+                <div style="display:flex;align-items:flex-start;gap:12px;flex:1;min-width:0;">
+                  <div class="game-icon">${(game.name || "G").slice(0, 2).toUpperCase()}</div>
+                  <div style="min-width:0;flex:1;">
+                    <p class="game-name">${game.name}</p>
+                    <div class="game-meta">
+                      <span>${game.category || "General"}</span>
+                      <span>•</span>
+                      <span>${game.type === "local" ? "Local" : "GitHub"}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="game-actions">
+                <button class="mini-btn primary" type="button" data-role="launcher" data-id="${game.id}">Launch</button>
+                <button class="mini-btn" type="button" data-role="blank" data-id="${game.id}">Open in about:blank</button>
+              </div>
+            `;
+
+            item.addEventListener("click", (event) => {
+              const trigger = event.target.closest("button");
+              if (!trigger) {
+                state.selectedGame = game;
+                previewTitle.textContent = game.name;
+                loadGameIntoPreview(game);
+                render();
+                return;
+              }
+
+              const role = trigger.getAttribute("data-role");
+              const id = trigger.getAttribute("data-id");
+              const selected = state.games.find((entry) => entry.id === id) || game;
+
+              state.selectedGame = selected;
+              previewTitle.textContent = selected.name;
+
+              if (role === "launcher") {
+                loadGameIntoPreview(selected);
+                setStatus(`Launching “${selected.name}” in the launcher preview.`, "ok");
+              }
+
+              if (role === "blank") {
+                openGameInBlank(selected);
+              }
+
+              render();
+            });
+
+            gameList.appendChild(item);
+          });
+        }
+
+        function render() {
+          renderCategories();
+          renderGameList();
+        }
+
+        function fetchRemoteGames() {
+          return fetch(contentUrl, { headers: { Accept: "application/vnd.github+json" } })
+            .then((response) => {
+              if (!response.ok) throw new Error("GitHub API failed");
+              return response.json();
+            })
+            .then((items) => {
+              if (!Array.isArray(items)) throw new Error("Unexpected game list");
+              return items
+                .filter((item) => item && item.type === "file" && /\.html?$/i.test(item.name))
+                .map(buildRemoteGame);
+            });
+        }
+
+        function loadAllGames() {
+          setStatus("Loading game library...", "");
+
+          Promise.all([
+            fetchRemoteGames(),
+            Promise.resolve(readLocalGames().map(buildLocalGame))
+          ])
+            .then(([remoteGames, localGames]) => {
+              state.games = mergeGames(remoteGames, localGames);
+
+              if (!state.selectedGame && state.games[0]) {
+                state.selectedGame = state.games[0];
+                previewTitle.textContent = state.selectedGame.name;
+                loadGameIntoPreview(state.selectedGame);
+              }
+
+              render();
+              setStatus(`Loaded ${state.games.length} HTML game files.`, "ok");
+            })
+            .catch((error) => {
+              console.error(error);
+              setStatus("Could not load the GitHub game list.", "err");
+            });
+        }
+
+        searchInput.addEventListener("input", () => {
+          render();
+        });
+
+        sortSelect.addEventListener("change", (event) => {
+          state.sortMode = event.target.value;
+          render();
+        });
+
+        developerOpen.addEventListener("click", () => {
+          window.open("developer.html", "_blank");
+        });
+
+        launchLauncherButton.addEventListener("click", () => {
+          if (!state.selectedGame) {
+            setStatus("Choose a game first.", "err");
+            return;
+          }
+          loadGameIntoPreview(state.selectedGame);
+          setStatus(`Launching “${state.selectedGame.name}” in the launcher preview.`, "ok");
+        });
+
+        openBlankButton.addEventListener("click", () => {
+          if (!state.selectedGame) {
+            setStatus("Choose a game first.", "err");
+            return;
+          }
+          openGameInBlank(state.selectedGame);
+        });
+
+        loadAllGames();
+      })();
+    </script>
+  </body>
+</html>

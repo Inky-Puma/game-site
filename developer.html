@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Developer Uploads</title>
+    <style>
+      :root {
+        --bg: #070b12;
+        --bg-2: #0f1723;
+        --panel: rgba(17, 23, 34, 0.92);
+        --card-border: rgba(148, 163, 184, 0.18);
+        --text: #edf3ff;
+        --muted: #9aa9c8;
+        --accent: #7c9cff;
+        --accent-2: #8f68ff;
+        --success: #4ade80;
+        --danger: #ff6b6b;
+        --shadow: rgba(0, 0, 0, 0.55);
+      }
+
+      * { box-sizing: border-box; }
+
+      html, body {
+        margin: 0;
+        min-height: 100%;
+        background: linear-gradient(180deg, var(--bg), var(--bg-2));
+        color: var(--text);
+        font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      }
+
+      body {
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+        padding: 30px 18px;
+      }
+
+      .app {
+        width: min(1100px, 100%);
+        background: var(--panel);
+        border: 1px solid var(--card-border);
+        border-radius: 26px;
+        box-shadow: 0 30px 90px var(--shadow);
+        overflow: hidden;
+      }
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        padding: 28px 28px 18px;
+        border-bottom: 1px solid var(--card-border);
+      }
+
+      .title h1 {
+        margin: 0;
+        font-size: clamp(1.8rem, 3vw, 2.6rem);
+        letter-spacing: -0.04em;
+      }
+
+      .title p {
+        margin: 8px 0 0;
+        color: var(--muted);
+      }
+
+      .header-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .button, .ghost-button, .danger-button {
+        border-radius: 12px;
+        border: 1px solid var(--card-border);
+        padding: 10px 14px;
+        cursor: pointer;
+        color: var(--text);
+      }
+
+      .button {
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        border: none;
+      }
+
+      .ghost-button {
+        background: rgba(255,255,255,0.02);
+      }
+
+      .danger-button {
+        background: rgba(255, 107, 107, 0.08);
+        border-color: rgba(255, 107, 107, 0.4);
+      }
+
+      .body {
+        padding: 24px 28px 28px;
+      }
+
+      .upload-box {
+        display: grid;
+        gap: 20px;
+        background: rgba(255,255,255,0.02);
+        border: 1px solid var(--card-border);
+        border-radius: 20px;
+        padding: 18px;
+      }
+
+      .file-input-wrap {
+        display: grid;
+        gap: 12px;
+      }
+
+      label {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      input[type="file"] {
+        display: block;
+        width: 100%;
+        background: rgba(255,255,255,0.02);
+        border: 1px solid var(--card-border);
+        border-radius: 12px;
+        color: var(--text);
+        padding: 12px;
+      }
+
+      .status {
+        min-height: 20px;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .status.ok { color: var(--success); }
+      .status.err { color: var(--danger); }
+
+      .uploaded-list {
+        margin-top: 22px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .game-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        background: rgba(255,255,255,0.02);
+        border: 1px solid var(--card-border);
+        border-radius: 16px;
+        padding: 14px 16px;
+      }
+
+      .game-item strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .meta {
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+
+      .actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .small-btn {
+        border-radius: 10px;
+        border: 1px solid var(--card-border);
+        background: rgba(255,255,255,0.02);
+        padding: 8px 10px;
+        color: var(--text);
+        cursor: pointer;
+      }
+
+      .small-btn.primary {
+        background: rgba(124, 156, 255, 0.16);
+        border-color: rgba(124, 156, 255, 0.7);
+      }
+
+      @media (max-width: 620px) {
+        .header, .body {
+          padding-left: 18px;
+          padding-right: 18px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <div class="header">
+        <div class="title">
+          <h1>Developer Uploads</h1>
+          <p>Upload your own HTML game files and add them to the launcher.</p>
+        </div>
+        <div class="header-actions">
+          <button class="ghost-button" id="openLauncher" type="button">Open launcher</button>
+          <button class="button" id="uploadFiles" type="button">Add files</button>
+        </div>
+      </div>
+
+      <div class="body">
+        <div class="upload-box">
+          <div class="file-input-wrap">
+            <label for="gameFiles">Choose HTML files</label>
+            <input id="gameFiles" type="file" accept=".html,.htm" multiple />
+          </div>
+          <div id="status" class="status" aria-live="polite"></div>
+        </div>
+
+        <div id="uploadedList" class="uploaded-list"></div>
+      </div>
+    </div>
+
+    <script>
+      const storageKey = "gamesLauncherLocalFiles";
+
+      const fileInput = document.getElementById("gameFiles");
+      const statusEl = document.getElementById("status");
+      const uploadedList = document.getElementById("uploadedList");
+      const uploadFilesBtn = document.getElementById("uploadFiles");
+      const openLauncherBtn = document.getElementById("openLauncher");
+
+      function setStatus(message, type = "") {
+        statusEl.textContent = message || "";
+        statusEl.className = `status${type ? ` ${type}` : ""}`;
+      }
+
+      function readLocalGames() {
+        try {
+          const raw = localStorage.getItem(storageKey);
+          if (!raw) return [];
+          const parsed = JSON.parse(raw);
+          return Array.isArray(parsed) ? parsed.filter(item => item && item.name && item.html) : [];
+        } catch (error) {
+          return [];
+        }
+      }
+
+      function saveLocalGames(list) {
+        localStorage.setItem(storageKey, JSON.stringify(list));
+      }
+
+      function escapeHtml(value) {
+        return String(value || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/\"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      function renderList() {
+        const games = readLocalGames();
+        uploadedList.innerHTML = "";
+
+        if (!games.length) {
+          uploadedList.innerHTML = '<div class="game-item"><div><strong>No uploaded games yet</strong><div class="meta">Use the file picker above to add your HTML games.</div></div></div>';
+          return;
+        }
+
+        games.forEach((game, index) => {
+          const row = document.createElement("div");
+          row.className = "game-item";
+
+          row.innerHTML = `
+            <div>
+              <strong>${escapeHtml(game.name)}</strong>
+              <div class="meta">${game.uploadedAt || "Uploaded"}</div>
+            </div>
+            <div class="actions">
+              <button class="small-btn primary" type="button" data-index="${index}" data-action="open">Open</button>
+              <button class="small-btn" type="button" data-index="${index}" data-action="remove">Remove</button>
+            </div>
+          `;
+
+          uploadedList.appendChild(row);
+        });
+      }
+
+      async function uploadFiles() {
+        const files = Array.from(fileInput.files || []);
+        if (!files.length) {
+          setStatus("Please select at least one HTML file.", "err");
+          return;
+        }
+
+        const validFiles = files.filter(file => /\.html?$/i.test(file.name));
+        if (!validFiles.length) {
+          setStatus("Only .html and .htm files are supported.", "err");
+          return;
+        }
+
+        const existing = readLocalGames();
+        const finalList = [...existing];
+
+        for (const file of validFiles) {
+          const text = await file.text();
+          const inserted = {
+            id: `local-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+            name: file.name,
+            html: text,
+            uploadedAt: new Date().toLocaleString()
+          };
+
+          const sameNameIndex = finalList.findIndex((item) => item.name.toLowerCase() === file.name.toLowerCase());
+          if (sameNameIndex >= 0) {
+            finalList[sameNameIndex] = inserted;
+          } else {
+            finalList.push(inserted);
+          }
+        }
+
+        saveLocalGames(finalList);
+        renderList();
+        fileInput.value = "";
+        setStatus(`Added ${validFiles.length} file${validFiles.length > 1 ? "s" : ""} to the launcher.`, "ok");
+      }
+
+      function openGameInBlank(game) {
+        const win = window.open("about:blank", "_blank");
+        if (!win) {
+          setStatus("Popup blocked. Please allow popups.", "err");
+          return;
+        }
+
+        win.document.open();
+        win.document.write(game.html || "<html><body>Empty file</body></html>");
+        win.document.close();
+        win.focus();
+        setStatus(`Opened “${game.name}” in a blank tab.`, "ok");
+      }
+
+      uploadedList.addEventListener("click", (event) => {
+        const button = event.target.closest("button");
+        if (!button) return;
+
+        const index = Number(button.getAttribute("data-index"));
+        const action = button.getAttribute("data-action");
+        const games = readLocalGames();
+        const game = games[index];
+
+        if (!game) return;
+
+        if (action === "open") {
+          openGameInBlank(game);
+        }
+
+        if (action === "remove") {
+          const next = games.filter((_, i) => i !== index);
+          saveLocalGames(next);
+          renderList();
+          setStatus(`Removed “${game.name}”.`, "ok");
+        }
+      });
+
+      uploadFilesBtn.addEventListener("click", () => {
+        fileInput.click();
+      });
+
+      fileInput.addEventListener("change", async () => {
+        await uploadFiles();
+      });
+
+      openLauncherBtn.addEventListener("click", () => {
+        window.location.href = "index.html";
+      });
+
+      renderList();
+    </script>
+  </body>
+</html>
